@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VocabVoice — AI Vocabulary Coach</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f7fb;color:#172033}
+.app{max-width:900px;margin:0 auto;padding:32px 18px 50px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.brand{font-size:25px;font-weight:800;letter-spacing:-.5px}.brand span{color:#5b5ce2}
+.badge{background:#e9e9ff;color:#4b4cc9;padding:7px 12px;border-radius:20px;font-size:12px;font-weight:700}
+.hero{background:linear-gradient(135deg,#20234a,#5355d8);color:white;border-radius:24px;padding:34px;box-shadow:0 18px 45px rgba(37,39,90,.18)}
+.eyebrow{text-transform:uppercase;letter-spacing:1.6px;font-size:11px;opacity:.75;font-weight:800}.hero h1{font-size:38px;line-height:1.05;margin:10px 0}.hero p{max-width:620px;opacity:.85;line-height:1.6}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:12px;padding:13px 18px;font-weight:750;cursor:pointer;font-size:14px}.primary{background:white;color:#3032a4}.secondary{background:rgba(255,255,255,.14);color:white;border:1px solid rgba(255,255,255,.22)}
+.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;margin-top:18px}.card{background:white;border:1px solid #e8eaf1;border-radius:20px;padding:24px;box-shadow:0 8px 24px rgba(25,35,65,.05)}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#73798b;font-weight:800}.word{font-size:42px;font-weight:850;margin:8px 0 2px}.type{color:#70778a;font-style:italic}.meaning{font-size:18px;line-height:1.5;margin:18px 0}.example{background:#f6f7ff;border-left:4px solid #6668e8;padding:13px 15px;border-radius:8px;line-height:1.5}
+.mic{width:92px;height:92px;border-radius:50%;border:0;background:#5b5ce2;color:white;font-size:34px;cursor:pointer;display:block;margin:8px auto 14px;box-shadow:0 10px 24px rgba(91,92,226,.25)}.mic.listening{animation:pulse 1.1s infinite}@keyframes pulse{50%{transform:scale(1.06);box-shadow:0 0 0 14px rgba(91,92,226,.08)}}
+.status{text-align:center;color:#6d7486;font-size:14px;min-height:22px}.transcript{min-height:72px;background:#f8f9fc;border-radius:12px;padding:14px;margin-top:14px;line-height:1.5}
+.feedback{margin-top:14px;padding:14px;border-radius:12px;background:#eefaf3;color:#20633b;display:none;line-height:1.5}.feedback.show{display:block}
+.actions{display:flex;gap:10px;margin-top:16px}.actions button{flex:1}.next{background:#172033;color:white}.speak{background:#eeeefb;color:#3f41a8}
+.progress{height:7px;background:#eceef4;border-radius:10px;overflow:hidden;margin-top:18px}.progress div{height:100%;background:#5b5ce2;width:0%;transition:.3s}
+.footer{text-align:center;color:#8a90a0;font-size:12px;margin-top:24px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.hero h1{font-size:31px}.word{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="brand">Vocab<span>Voice</span></div>
+    <div class="badge">FREE • BROWSER VOICE</div>
+  </div>
+
+  <section class="hero">
+    <div class="eyebrow">Interactive English coach</div>
+    <h1>Learn a word. Speak it. Get feedback.</h1>
+    <p>A lightweight voice vocabulary coach. Choose a level, listen to the word, then speak your own sentence. The browser handles speech recognition and text-to-speech, so no paid API is required.</p>
+    <div class="controls">
+      <button class="btn primary" onclick="startLesson()">Start lesson</button>
+      <button class="btn secondary" onclick="speakCurrent()">🔊 Hear the word</button>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <div class="label">Today's word</div>
+      <div class="word" id="word">Resilient</div>
+      <div class="type" id="type">adjective</div>
+      <div class="meaning" id="meaning">Able to recover quickly from difficulties.</div>
+      <div class="example" id="example">“She remained resilient after facing several challenges.”</div>
+      <div class="progress"><div id="progress"></div></div>
+    </section>
+
+    <section class="card">
+      <div class="label">Your turn</div>
+      <p style="margin-top:8px">Use the word in your own sentence. Tap the microphone and speak naturally.</p>
+      <button class="mic" id="mic" onclick="listen()">🎙️</button>
+      <div class="status" id="status">Ready when you are.</div>
+      <div class="transcript" id="transcript">Your spoken sentence will appear here.</div>
+      <div class="feedback" id="feedback"></div>
+      <div class="actions">
+        <button class="btn speak" onclick="speakCurrent()">🔊 Hear</button>
+        <button class="btn next" onclick="nextWord()">Next word →</button>
+      </div>
+    </section>
+  </div>
+  <div class="footer">VocabVoice prototype • Built with standard Web Speech APIs • No paid AI API required</div>
+</div>
+
+<script>
+const words = [
+ {word:"Resilient",type:"adjective",meaning:"Able to recover quickly from difficulties.",example:"She remained resilient after facing several challenges.",keywords:["resilient","resilience"]},
+ {word:"Versatile",type:"adjective",meaning:"Able to adapt to many different activities or situations.",example:"A versatile employee can handle different kinds of tasks.",keywords:["versatile","versatility"]},
+ {word:"Meticulous",type:"adjective",meaning:"Very careful and precise about details.",example:"He is meticulous when checking technical reports.",keywords:["meticulous","meticulously"]},
+ {word:"Curious",type:"adjective",meaning:"Eager to learn or know more about something.",example:"She is curious about how new technology works.",keywords:["curious","curiosity"]},
+ {word:"Adapt",type:"verb",meaning:"To change your approach so that it works in a new situation.",example:"Good learners adapt when they face a new challenge.",keywords:["adapt","adapts","adapted","adapting"]}
+];
+let index=0, started=false;
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition;
+
+function current(){return words[index]}
+
+function render(){
+ const w=current();
+ document.getElementById("word").textContent=w.word;
+ document.getElementById("type").textContent=w.type;
+ document.getElementById("meaning").textContent=w.meaning;
+ document.getElementById("example").textContent="“"+w.example+"”";
+ document.getElementById("transcript").textContent="Your spoken sentence will appear here.";
+ document.getElementById("feedback").className="feedback";
+ document.getElementById("feedback").innerHTML="";
+ document.getElementById("progress").style.width=((index+1)/words.length*100)+"%";
+ document.getElementById("status").textContent=started ? "Ready for your sentence." : "Ready when you are.";
+}
+
+function say(text){
+ if(!("speechSynthesis" in window)) return;
+ speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(text);
+ u.lang="en-US"; u.rate=.92;
+ speechSynthesis.speak(u);
+}
+
+function speakCurrent(){
+ const w=current();
+ say("Today's word is "+w.word+". It means: "+w.meaning+". Example: "+w.example+" Now, use "+w.word+" in your own sentence.");
+}
+
+function startLesson(){
+ started=true; render();
+ say("Welcome to VocabVoice. Today's word is "+current().word+". It means: "+current().meaning+". Now, use the word in your own sentence.");
+}
+
+function evaluate(text){
+ const w=current(), lower=text.toLowerCase();
+ const box=document.getElementById("feedback");
+ let msg;
+ if(w.keywords.some(k=>lower.includes(k))){
+   msg="Great job! You used <strong>"+w.word+"</strong> correctly. Your sentence shows you understand the word.";
+ } else if(text.trim().split(/\s+/).length < 4){
+   msg="Good start! Try making a longer sentence that clearly shows the meaning of <strong>"+w.word+"</strong>.";
+ } else {
+   msg="Nice attempt! I heard your sentence. Try using <strong>"+w.word+"</strong> explicitly so the meaning is clearer.";
+ }
+ box.innerHTML=msg; box.className="feedback show";
+ say(box.textContent);
+}
+
+function listen(){
+ if(!SpeechRecognition){
+   document.getElementById("status").textContent="Speech recognition is not supported in this browser. Try Google Chrome.";
+   return;
+ }
+ recognition=new SpeechRecognition();
+ recognition.lang="en-US"; recognition.continuous=false; recognition.interimResults=false; recognition.maxAlternatives=1;
+ const mic=document.getElementById("mic");
+ recognition.onstart=()=>{mic.classList.add("listening");document.getElementById("status").textContent="Listening… speak your sentence.";};
+ recognition.onresult=e=>{
+   const text=e.results[0][0].transcript;
+   document.getElementById("transcript").textContent=text;
+   document.getElementById("status").textContent="Got it. Here's your feedback:";
+   evaluate(text);
+ };
+ recognition.onerror=e=>{
+   document.getElementById("status").textContent=e.error==="not-allowed" ? "Microphone permission was blocked." : "I couldn't hear that. Please try again.";
+ };
+ recognition.onend=()=>mic.classList.remove("listening");
+ try{recognition.start()}catch(e){}
+}
+
+function nextWord(){
+ index=(index+1)%words.length; started=true; render();
+ const w=current();
+ say("Next word: "+w.word+". It means: "+w.meaning+". Can you use it in a sentence?");
+}
+render();
+</script>
+</body>
+</html>
